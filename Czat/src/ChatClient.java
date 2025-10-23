@@ -1,6 +1,6 @@
 import javax.swing.*;
+import javax.swing.text.*;
 import java.awt.*;
-import java.awt.event.*;
 import java.io.*;
 import java.net.*;
 import java.util.Arrays;
@@ -10,7 +10,7 @@ public class ChatClient extends JFrame {
     private BufferedReader in;
     private PrintWriter out;
 
-    private JTextArea chatArea = new JTextArea();
+    private JTextPane chatPane = new JTextPane();
     private JTextField inputField = new JTextField();
     private JButton sendButton = new JButton("Wyślij");
     private JList<String> userList = new JList<>();
@@ -21,11 +21,11 @@ public class ChatClient extends JFrame {
     public ChatClient(String host, int port) {
         super("Czat sieciowy");
 
-        chatArea.setEditable(false);
+        chatPane.setEditable(false);
         userList.setModel(listModel);
         userList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-        JScrollPane chatScroll = new JScrollPane(chatArea);
+        JScrollPane chatScroll = new JScrollPane(chatPane);
         JScrollPane userScroll = new JScrollPane(userList);
         userScroll.setPreferredSize(new Dimension(150, 0));
 
@@ -53,9 +53,17 @@ public class ChatClient extends JFrame {
             socket = new Socket(host, port);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(socket.getOutputStream(), true);
-
+                
+        do {
             username = JOptionPane.showInputDialog(this, "Podaj swój login:");
-            out.println(username);
+            if (username == null) {
+                System.exit(0);
+            }
+            username = username.trim();
+        } while (username.isEmpty());
+
+        out.println(username);
+
         } catch (IOException e) {
             JOptionPane.showMessageDialog(this, "Nie udało się połączyć z serwerem.");
             System.exit(0);
@@ -74,27 +82,48 @@ public class ChatClient extends JFrame {
                             Arrays.stream(users).forEach(listModel::addElement);
                         });
                     } else {
-                        chatArea.append(msg + "\n");
+                        if (msg.startsWith("[SERVER]")) {
+                            appendMessage(msg + "\n", Color.RED);
+                        } else {
+                            appendMessage(msg + "\n", Color.BLACK);
+                        }
                     }
                 }
             } catch (IOException e) {
-                chatArea.append("Rozłączono z serwerem.\n");
+                appendMessage("Rozłączono z serwerem.\n", Color.GRAY);
             }
         }).start();
     }
 
     private void sendMessage() {
-        String message = inputField.getText().trim();
-        if (message.isEmpty()) return;
+    String message = inputField.getText().trim();
+    if (message.isEmpty()) return;
 
-        String target = userList.getSelectedValue();
-        if (target != null && !target.equals(username)) {
-            out.println("/msg " + target + " " + message);
-            chatArea.append("[Prywatna do " + target + "]: " + message + "\n");
-        } else {
-            out.println(message);
-        }
-        inputField.setText("");
+    String target = userList.getSelectedValue();
+    if (target != null && !target.equals(username)) {
+        out.println("/msg " + target + " " + message);
+        appendMessage("[Prywatna do " + target + "]: " + message + "\n", new Color(248, 255, 100));
+    } else {
+        out.println(message);
+        appendMessage("[Ty]: " + message + "\n", Color.BLACK);
+    }
+
+    inputField.setText("");
+}
+
+
+    private void appendMessage(String msg, Color color) {
+        SwingUtilities.invokeLater(() -> {
+            StyledDocument doc = chatPane.getStyledDocument();
+            Style style = chatPane.addStyle("Style", null);
+            StyleConstants.setForeground(style, color);
+            try {
+                doc.insertString(doc.getLength(), msg, style);
+                chatPane.setCaretPosition(doc.getLength());
+            } catch (BadLocationException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     public static void main(String[] args) {

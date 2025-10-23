@@ -20,13 +20,17 @@ public class ClientHandler extends Thread {
         ) {
             out = new PrintWriter(socket.getOutputStream(), true);
 
-            out.println("Podaj swój login:");
             username = in.readLine();
+            if (username == null || username.trim().isEmpty()) {
+                out.println("[SERVER] Login nie może być pusty. Rozłączenie...");
+                socket.close();
+                return;
+            }
             synchronized (clients) {
                 clients.put(username, out);
             }
 
-            ChatServer.broadcast("[SERVER] " + username + " dołączył do czatu.", username);
+            ChatServer.broadcast("[SERVER] " + username + " dołączył do czatu.", null);
             ChatServer.updateUserList();
 
             String message;
@@ -38,7 +42,7 @@ public class ClientHandler extends Thread {
                         String msg = parts[2];
                         PrintWriter targetOut = clients.get(targetUser);
                         if (targetOut != null) {
-                            targetOut.println("[Prywatna od " + username + "]: " + msg);
+                            targetOut.println("[Priv " + username + "]: " + msg);
                         } else {
                             out.println("[SERVER] Użytkownik " + targetUser + " nie jest dostępny.");
                         }
