@@ -42,12 +42,13 @@ public class ClientHandler extends Thread {
                         String msg = parts[2];
                         PrintWriter targetOut = clients.get(targetUser);
                         if (targetOut != null) {
-                            targetOut.println("[Priv " + username + "]: " + msg);
+                            targetOut.println("[PRIV od " + username + "]: " + msg);
                         } else {
                             out.println("[SERVER] Użytkownik " + targetUser + " nie jest dostępny.");
                         }
                     }
-                } else {
+                } 
+                else {
                     ChatServer.broadcast(username + ": " + message, null);
                 }
             }

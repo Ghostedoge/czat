@@ -18,6 +18,25 @@ public class ChatServer {
             e.printStackTrace();
         }
     }
+    public static void sendPrivateMessage(String fromUser, String toUser, String message) {
+        synchronized (clients) {
+            PrintWriter targetOut = clients.get(toUser);
+            PrintWriter fromOut = clients.get(fromUser);
+
+            if (targetOut != null) {
+                targetOut.println("[PRIV od " + fromUser + "]: " + message);
+            } else {
+                if (fromOut != null) {
+                    fromOut.println("[SERVER] Użytkownik " + toUser + " nie jest dostępny.");
+                }
+            }
+
+            if (fromOut != null) {
+                fromOut.println("[PRIV do " + toUser + "]: " + message);
+            }
+        }
+    }
+
 
     public static void broadcast(String message, String excludeUser) {
         synchronized (clients) {
